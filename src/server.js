@@ -2,7 +2,15 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
+const recipeRoutes = require("./routes/recipe.routes");
+
+const connectDB = require("./config/db");
+const swaggerDocs = require("./config/swagger");
+
 const app = express();
+
+// Connect Database
+connectDB();
 
 // Environment variables
 const PORT = process.env.PORT || 3000;
@@ -24,6 +32,19 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.send("Hello World");
 });
+
+// Use recipe routes
+app.use("/api/recipes", recipeRoutes); // <-- all recipe routes now start with /api/recipes
+// Example:
+// GET /api/recipes
+// GET /api/recipes/:id
+// POST /api/recipes
+// PUT /api/recipes/:id
+// PATCH /api/recipes/:id
+// DELETE /api/recipes/:id
+
+// ✅ Swagger (დაუძახე აქ)
+swaggerDocs(app);
 
 // Server start
 app.listen(PORT, () => {
