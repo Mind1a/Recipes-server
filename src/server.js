@@ -7,6 +7,9 @@ const recipeRoutes = require("./routes/recipe.routes");
 const connectDB = require("./config/db");
 const swaggerDocs = require("./config/swagger");
 
+const { setServers } = require("node:dns/promises");
+setServers(["1.1.1.1", "8.8.8.8"]);
+
 const app = express();
 
 // Connect Database
