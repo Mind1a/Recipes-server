@@ -2,8 +2,9 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
-const authRoutes = require("./routes/auth.routes");
+const cookieParser = require("cookie-parser");
 
+const authRoutes = require("./routes/auth.routes");
 const recipeRoutes = require("./routes/recipe.routes");
 
 const connectDB = require("./config/db");
@@ -31,6 +32,7 @@ app.use(
 );
 
 // Middleware (JSON parsing)
+app.use(cookieParser());
 app.use(express.json());
 
 // Route
