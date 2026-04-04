@@ -2,6 +2,8 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
+const authRoutes = require("./routes/auth.routes");
+
 const recipeRoutes = require("./routes/recipe.routes");
 
 const connectDB = require("./config/db");
@@ -45,6 +47,9 @@ app.use("/api/recipes", recipeRoutes); // <-- all recipe routes now start with /
 // PUT /api/recipes/:id
 // PATCH /api/recipes/:id
 // DELETE /api/recipes/:id
+
+// Use auth routes
+app.use("/api/auth", authRoutes);
 
 // ✅ Swagger (დაუძახე აქ)
 swaggerDocs(app);
