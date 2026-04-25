@@ -1,8 +1,6 @@
 const ms = require("ms");
-
-// REGISTER
-const User = require("../models/User");
 const jwt = require("jsonwebtoken");
+const User = require("../models/User");
 
 // helper: generate token
 const generateToken = (userId) => {
@@ -11,12 +9,11 @@ const generateToken = (userId) => {
   });
 };
 
-// ✅ REGISTER (with httpOnly cookie)
+// ✅ REGISTER
 const register = async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    // 1. check existing - არსებული იუზერის შემოწმება
     const existingUser = await User.findOne({
       $or: [{ email }, { username }],
     });
@@ -27,27 +24,21 @@ const register = async (req, res) => {
       });
     }
 
-    // 2. create user
-
     const user = await User.create({
       username,
       email,
       password,
     });
 
-    // 3. generate JWT
-    //   token = ვიზა
     const token = generateToken(user._id);
 
-    // 4. send httpOnly cookie
     res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // HTTPS only in prod
-      sameSite: "strict", // CSRF protection
-      maxAge: ms(process.env.JWT_EXPIRES_IN), // 🔥 from .env
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: ms(process.env.JWT_EXPIRES_IN),
     });
 
-    // 5. response (NO password)
     res.status(201).json({
       message: "User registered successfully",
       user: {
@@ -65,14 +56,81 @@ const register = async (req, res) => {
   }
 };
 
-module.exports = {
-  register,
+// ✅ LOGIN
+const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        message: "Email and password are required",
+      });
+    }
+
+    const user = await User.findOne({ email }).select("+password");
+
+    if (!user) {
+      return res.status(400).json({
+        message: "Invalid credentials",
+      });
+    }
+
+    const isMatch = await user.comparePassword(password);
+
+    if (!isMatch) {
+      return res.status(400).json({
+        message: "Invalid credentials",
+      });
+    }
+
+    const token = generateToken(user._id);
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: ms(process.env.JWT_EXPIRES_IN),
+    });
+
+    res.status(200).json({
+      message: "Login successful",
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        profileImg: user.profileImg,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
 };
 
-// LOGIN
-const login = async (req, res) => {};
+// ✅ LOGOUT
+const logout = async (req, res) => {
+  res.cookie("token", "", {
+    httpOnly: true,
+    expires: new Date(0), // expire immediately
+  });
+
+  res.status(200).json({
+    message: "Logged out successfully",
+  });
+};
+
+// ✅ GET CURRENT USER (/me)
+const getMe = async (req, res) => {
+  res.status(200).json({
+    user: req.user,
+  });
+};
 
 module.exports = {
   register,
   login,
+  logout,
+  getMe,
 };
