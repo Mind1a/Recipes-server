@@ -29,6 +29,14 @@ exports.getAllRecipes = async (req, res) => {
 
     // 📄 Data fetch
     const recipes = await Recipe.find(filter)
+      .populate({
+        path: "comments",
+        options: { sort: { createdAt: -1 } },
+        populate: {
+          path: "user",
+          select: "username profileImg",
+        },
+      })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limitNumber);
@@ -67,7 +75,14 @@ exports.getRecipeById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const recipe = await Recipe.findById(id);
+    const recipe = await Recipe.findById(id).populate({
+      path: "comments",
+      options: { sort: { createdAt: -1 } },
+      populate: {
+        path: "user",
+        select: "username profileImg",
+      },
+    });
 
     if (!recipe) {
       return res.status(404).json({

@@ -6,6 +6,7 @@ const cookieParser = require("cookie-parser");
 
 const authRoutes = require("./routes/auth.routes");
 const recipeRoutes = require("./routes/recipe.routes");
+const commentRoutes = require("./routes/comment.routes");
 
 const connectDB = require("./config/db");
 const swaggerDocs = require("./config/swagger");
@@ -52,6 +53,9 @@ app.use("/api/recipes", recipeRoutes); // <-- all recipe routes now start with /
 
 // Use auth routes
 app.use("/api/auth", authRoutes);
+
+// Use comment routes
+app.use("/api/comments", commentRoutes);
 
 // ✅ Swagger (დაუძახე აქ)
 swaggerDocs(app);
