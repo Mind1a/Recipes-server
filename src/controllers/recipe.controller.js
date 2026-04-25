@@ -1,4 +1,8 @@
 const Recipe = require("../models/Recipe");
+const {
+  uploadBase64Image,
+  uploadImagesArray,
+} = require("../config/cloudinary.upload");
 
 exports.getAllRecipes = async (req, res) => {
   try {
@@ -113,12 +117,15 @@ exports.createRecipe = async (req, res) => {
       });
     }
 
+    const imageUrl = image ? await uploadBase64Image(image) : undefined;
+    const imagesUrls = await uploadImagesArray(images);
+
     // 🧠 Create recipe
     const newRecipe = await Recipe.create({
       title,
       description,
-      image,
-      images,
+      image: imageUrl || image,
+      images: imagesUrls?.length ? imagesUrls : images,
       author,
       ingredients,
       steps,
@@ -135,6 +142,13 @@ exports.createRecipe = async (req, res) => {
       data: newRecipe,
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: "Failed to create recipe",
@@ -209,12 +223,15 @@ exports.updateRecipe = async (req, res) => {
       });
     }
 
+    const imageUrl = image ? await uploadBase64Image(image) : undefined;
+    const imagesUrls = images ? await uploadImagesArray(images) : undefined;
+
     // 🧠 Update object (whitelisting)
     const updateData = {
       title,
       description,
-      image,
-      images,
+      image: imageUrl || image,
+      images: imagesUrls?.length ? imagesUrls : images,
       author,
       ingredients,
       steps,
@@ -248,6 +265,13 @@ exports.updateRecipe = async (req, res) => {
       data: updatedRecipe,
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: "Failed to update recipe",
