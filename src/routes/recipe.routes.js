@@ -7,7 +7,10 @@ const {
   createRecipe,
   updateRecipe,
   deleteRecipe,
+  likeRecipe,
+  dislikeRecipe,
 } = require("../controllers/recipe.controller");
+const { protect } = require("../middleware/auth.middleware");
 
 /**
  * @swagger
@@ -182,7 +185,7 @@ router.get("/:id", getRecipeById);
  *       400:
  *         description: არასწორი მონაცემები
  */
-router.post("/", createRecipe);
+router.post("/", protect, createRecipe);
 
 /**
  * @swagger
@@ -203,7 +206,7 @@ router.post("/", createRecipe);
  *       200:
  *         description: განახლდა
  */
-router.put("/:id", updateRecipe);
+router.put("/:id", protect, updateRecipe);
 
 /**
  * @swagger
@@ -221,7 +224,11 @@ router.put("/:id", updateRecipe);
  *           schema:
  *             $ref: '#/components/schemas/Recipe'
  */
-router.patch("/:id", updateRecipe);
+router.patch("/:id", protect, updateRecipe);
+
+router.patch("/:id/like", protect, likeRecipe);
+
+router.patch("/:id/dislike", protect, dislikeRecipe);
 
 /**
  * @swagger
@@ -239,6 +246,6 @@ router.patch("/:id", updateRecipe);
  *       404:
  *         description: ვერ მოიძებნა
  */
-router.delete("/:id", deleteRecipe);
+router.delete("/:id", protect, deleteRecipe);
 
 module.exports = router;

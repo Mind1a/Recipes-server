@@ -294,3 +294,118 @@ exports.updateRecipe = async (req, res) => {
     });
   }
 };
+
+//
+// 📌 LIKE / UNLIKE RECIPE
+//
+exports.likeRecipe = async (req, res) => {
+  try {
+    // 🧑‍🍳 მომხმარებლის ID და რეცეპტის ID
+    const { id } = req.params;
+    const userId = req.user._id.toString();
+
+    const recipe = await Recipe.findById(id);
+
+    if (!recipe) {
+      return res.status(404).json({
+        success: false,
+        message: "Recipe not found",
+      });
+    }
+
+    const hasLiked = recipe.likedBy.some((user) => user.toString() === userId);
+    const hasDisliked = recipe.dislikedBy.some(
+      (user) => user.toString() === userId,
+    );
+
+    if (hasLiked) {
+      recipe.likedBy.pull(req.user._id);
+      recipe.likes = Math.max(recipe.likes - 1, 0);
+    } else {
+      recipe.likedBy.push(req.user._id);
+      recipe.likes += 1;
+    }
+
+    if (hasDisliked) {
+      recipe.dislikedBy.pull(req.user._id);
+      recipe.dislikes = Math.max(recipe.dislikes - 1, 0);
+    }
+
+    await recipe.save();
+
+    res.status(200).json({
+      success: true,
+      message: hasLiked ? "Recipe unliked" : "Recipe liked",
+      data: {
+        recipeId: recipe._id,
+        likes: recipe.likes,
+        dislikes: recipe.dislikes,
+        isLiked: !hasLiked,
+        isDisliked: false,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to like recipe",
+      error: error.message,
+    });
+  }
+};
+
+//
+// 📌 DISLIKE / REMOVE DISLIKE RECIPE
+//
+exports.dislikeRecipe = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id.toString();
+
+    const recipe = await Recipe.findById(id);
+
+    if (!recipe) {
+      return res.status(404).json({
+        success: false,
+        message: "Recipe not found",
+      });
+    }
+
+    const hasLiked = recipe.likedBy.some((user) => user.toString() === userId);
+    const hasDisliked = recipe.dislikedBy.some(
+      (user) => user.toString() === userId,
+    );
+
+    if (hasDisliked) {
+      recipe.dislikedBy.pull(req.user._id);
+      recipe.dislikes = Math.max(recipe.dislikes - 1, 0);
+    } else {
+      recipe.dislikedBy.push(req.user._id);
+      recipe.dislikes += 1;
+    }
+
+    if (hasLiked) {
+      recipe.likedBy.pull(req.user._id);
+      recipe.likes = Math.max(recipe.likes - 1, 0);
+    }
+
+    await recipe.save();
+
+    res.status(200).json({
+      success: true,
+      message: hasDisliked ? "Recipe dislike removed" : "Recipe disliked",
+      data: {
+        recipeId: recipe._id,
+        likes: recipe.likes,
+        dislikes: recipe.dislikes,
+        isLiked: false,
+        isDisliked: !hasDisliked,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to dislike recipe",
+      error: error.message,
+    });
+  }
+};
