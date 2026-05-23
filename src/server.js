@@ -16,6 +16,7 @@ const swaggerDocs = require("./config/swagger");
 const initCrons = require("./cron");
 
 const { setServers } = require("node:dns/promises");
+const { globalLimiter } = require("./middleware/rateLimiter.middleware");
 setServers(["1.1.1.1", "8.8.8.8"]);
 
 const app = express();
@@ -36,6 +37,8 @@ app.use(
 // Middleware (JSON parsing)
 app.use(cookieParser());
 app.use(express.json());
+
+app.use("/api", globalLimiter); // <-- 🆕 ვადებთ ყველა /api-ით დაწყებულ როუტს გლობალურად!
 
 // Route
 app.get("/", (req, res) => {

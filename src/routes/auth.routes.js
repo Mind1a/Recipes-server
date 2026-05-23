@@ -10,6 +10,7 @@ const {
 } = require("../controllers/auth.controller");
 
 const { protect } = require("../middleware/auth.middleware");
+const { authLimiter } = require("../middleware/rateLimiter.middleware");
 
 /**
  * @swagger
@@ -137,7 +138,7 @@ router.post("/register", register);
  *       500:
  *         description: Server error
  */
-router.post("/login", login);
+router.post("/login", authLimiter, login);
 
 /**
  * @swagger
