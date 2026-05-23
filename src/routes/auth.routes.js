@@ -6,6 +6,7 @@ const {
   login,
   logout,
   getMe,
+  changePassword,
 } = require("../controllers/auth.controller");
 
 const { protect } = require("../middleware/auth.middleware");
@@ -72,6 +73,19 @@ const { protect } = require("../middleware/auth.middleware");
  *         password:
  *           type: string
  *           example: 123456
+ *
+ *     ChangePasswordRequest:
+ *       type: object
+ *       required:
+ *         - currentPassword
+ *         - newPassword
+ *       properties:
+ *         currentPassword:
+ *           type: string
+ *           example: oldPassword123
+ *         newPassword:
+ *           type: string
+ *           example: newPassword123
  */
 
 /**
@@ -148,6 +162,33 @@ router.post("/login", login);
  *         description: Not authorized
  */
 router.get("/me", protect, getMe);
+
+/**
+ * @swagger
+ * /auth/change-password:
+ *   patch:
+ *     summary: Change current user password
+ *     tags: [Auth]
+ *     description: Updates password using current password verification
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ChangePasswordRequest'
+ *     responses:
+ *       200:
+ *         description: Password updated successfully
+ *       400:
+ *         description: Invalid input or current password is incorrect
+ *       401:
+ *         description: Not authorized
+ *       404:
+ *         description: User not found
+ */
+router.patch("/change-password", protect, changePassword);
 
 /**
  * @swagger

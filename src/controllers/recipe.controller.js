@@ -4,6 +4,19 @@ const {
   uploadImagesArray,
 } = require("../config/cloudinary.upload");
 
+const canManageRecipe = (recipe, user) => {
+  if (!recipe || !user) return false;
+  if (user.role === "admin") return true;
+
+  // თუ ადმინი არ არის, მოვძებნოთ მისი საკუთარი რეცეპტები, და მარტო მისი წაშლის უფლება მივცეთ
+  const recipeAuthor = recipe.author?.toString?.().trim();
+  const userId = user._id?.toString?.();
+
+  return [userId, user.username, user.email]
+    .filter(Boolean)
+    .includes(recipeAuthor);
+};
+
 exports.getAllRecipes = async (req, res) => {
   try {
     // 📌 Query params
@@ -16,6 +29,8 @@ exports.getAllRecipes = async (req, res) => {
 
     // 🎯 Filter
     const filter = {};
+
+    filter.isPublished = true;
 
     if (category) filter.category = category;
     if (difficulty) filter.difficulty = difficulty;
@@ -91,6 +106,13 @@ exports.getRecipeById = async (req, res) => {
       });
     }
 
+    if (!recipe.isPublished) {
+      return res.status(404).json({
+        success: false,
+        message: "Recipe not found",
+      });
+    }
+
     res.status(200).json({
       success: true,
       data: recipe,
@@ -132,6 +154,9 @@ exports.createRecipe = async (req, res) => {
       });
     }
 
+    const isAdmin = req.user?.role === "admin";
+    const recipeAuthor = req.user?._id.toString();
+
     const imageUrl = image ? await uploadBase64Image(image) : undefined;
     const imagesUrls = await uploadImagesArray(images);
 
@@ -149,6 +174,10 @@ exports.createRecipe = async (req, res) => {
       difficulty,
       category,
       tags,
+      isPublished: isAdmin,
+      approvalStatus: isAdmin ? "approved" : "pending",
+      approvedBy: isAdmin ? req.user._id : null,
+      approvedAt: isAdmin ? new Date() : null,
     });
 
     res.status(201).json({
@@ -179,12 +208,20 @@ exports.deleteRecipe = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const deletedRecipe = await Recipe.findByIdAndDelete(id);
+    const recipe = await Recipe.findById(id);
 
-    if (!deletedRecipe) {
+    if (!recipe) {
       return res.status(404).json({
         success: false,
         message: "Recipe not found",
+      });
+    }
+
+    // ვისაც არ აქვს რეცეპტებზე წვდომა
+    if (!canManageRecipe(recipe, req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only delete your own recipes",
       });
     }
 
@@ -207,6 +244,22 @@ exports.deleteRecipe = async (req, res) => {
 exports.updateRecipe = async (req, res) => {
   try {
     const { id } = req.params;
+
+    const recipe = await Recipe.findById(id);
+
+    if (!recipe) {
+      return res.status(404).json({
+        success: false,
+        message: "Recipe not found",
+      });
+    }
+
+    if (!canManageRecipe(recipe, req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only edit your own recipe",
+      });
+    }
 
     const {
       title,
@@ -266,13 +319,6 @@ exports.updateRecipe = async (req, res) => {
       new: true, // დაბრუნდეს განახლებული მონაცემი
       runValidators: true, // mongoose validation
     });
-
-    if (!updatedRecipe) {
-      return res.status(404).json({
-        success: false,
-        message: "Recipe not found",
-      });
-    }
 
     res.status(200).json({
       success: true,
@@ -405,6 +451,67 @@ exports.dislikeRecipe = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to dislike recipe",
+      error: error.message,
+    });
+  }
+};
+
+//
+// 📌 ADMIN - GET PENDING RECIPE REQUESTS
+//
+exports.getPendingRecipes = async (req, res) => {
+  try {
+    const recipes = await Recipe.find({
+      approvalStatus: "pending",
+      isPublished: false,
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: recipes.length,
+      data: recipes,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch pending recipe requests",
+      error: error.message,
+    });
+  }
+};
+
+//
+// 📌 ADMIN - APPROVE RECIPE REQUEST
+//
+exports.approveRecipeRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const recipe = await Recipe.findById(id);
+
+    if (!recipe) {
+      return res.status(404).json({
+        success: false,
+        message: "Recipe not found",
+      });
+    }
+
+    recipe.approvalStatus = "approved";
+    recipe.isPublished = true;
+    recipe.approvedBy = req.user._id;
+    recipe.approvedAt = new Date();
+
+    await recipe.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Recipe approved successfully",
+      data: recipe,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to approve recipe request",
       error: error.message,
     });
   }

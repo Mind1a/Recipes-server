@@ -9,15 +9,13 @@ const recipeRoutes = require("./routes/recipe.routes");
 const commentRoutes = require("./routes/comment.routes");
 
 const connectDB = require("./config/db");
+const seedAdmin = require("./scripts/seedAdmin");
 const swaggerDocs = require("./config/swagger");
 
 const { setServers } = require("node:dns/promises");
 setServers(["1.1.1.1", "8.8.8.8"]);
 
 const app = express();
-
-// Connect Database
-connectDB();
 
 // Environment variables
 const PORT = process.env.PORT || 3000;
@@ -60,7 +58,19 @@ app.use("/api/comments", commentRoutes);
 // ✅ Swagger (დაუძახე აქ)
 swaggerDocs(app);
 
-// Server start
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+const startServer = async () => {
+  try {
+    await connectDB();
+    await seedAdmin();
+
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+      console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error.message);
+    process.exit(1);
+  }
+};
+
+startServer();

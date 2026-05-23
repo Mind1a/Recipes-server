@@ -9,8 +9,10 @@ const {
   deleteRecipe,
   likeRecipe,
   dislikeRecipe,
+  getPendingRecipes,
+  approveRecipeRequest,
 } = require("../controllers/recipe.controller");
-const { protect } = require("../middleware/auth.middleware");
+const { protect, admin } = require("../middleware/auth.middleware");
 
 /**
  * @swagger
@@ -173,6 +175,9 @@ router.get("/:id", getRecipeById);
  *   post:
  *     summary: ახალი რეცეპტის შექმნა
  *     tags: [Recipes]
+ *     description: Admin publishes immediately, regular users submit for approval.
+ *     security:
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -184,6 +189,8 @@ router.get("/:id", getRecipeById);
  *         description: წარმატებით შეიქმნა
  *       400:
  *         description: არასწორი მონაცემები
+ *       401:
+ *         description: ავტორიზაცია საჭიროა
  */
 router.post("/", protect, createRecipe);
 
@@ -193,6 +200,8 @@ router.post("/", protect, createRecipe);
  *   put:
  *     summary: სრული განახლება
  *     tags: [Recipes]
+ *     security:
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -205,6 +214,8 @@ router.post("/", protect, createRecipe);
  *     responses:
  *       200:
  *         description: განახლდა
+ *       403:
+ *         description: მხოლოდ ავტორს ან ადმინს შეუძლია განახლება
  */
 router.put("/:id", protect, updateRecipe);
 
@@ -214,6 +225,8 @@ router.put("/:id", protect, updateRecipe);
  *   patch:
  *     summary: ნაწილობრივი განახლება
  *     tags: [Recipes]
+ *     security:
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -223,12 +236,102 @@ router.put("/:id", protect, updateRecipe);
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/Recipe'
+ *     responses:
+ *       200:
+ *         description: განახლდა
+ *       403:
+ *         description: მხოლოდ ავტორს ან ადმინს შეუძლია განახლება
  */
 router.patch("/:id", protect, updateRecipe);
 
+/**
+ * @swagger
+ * /recipes/{id}/like:
+ *   patch:
+ *     summary: რეცეპტის მოწონება / მოწონების გაუქმება
+ *     tags: [Recipes]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: სტატუსი განახლდა
+ *       401:
+ *         description: ავტორიზაცია საჭიროა
+ */
 router.patch("/:id/like", protect, likeRecipe);
 
+/**
+ * @swagger
+ * /recipes/{id}/dislike:
+ *   patch:
+ *     summary: რეცეპტის dislike / dislike-ის გაუქმება
+ *     tags: [Recipes]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: სტატუსი განახლდა
+ *       401:
+ *         description: ავტორიზაცია საჭიროა
+ */
 router.patch("/:id/dislike", protect, dislikeRecipe);
+
+/**
+ * @swagger
+ * /recipes/admin/requests:
+ *   get:
+ *     summary: Pending recipe requests (admin only)
+ *     tags: [Recipes]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Pending requests list
+ *       403:
+ *         description: Admin role required
+ */
+router.get("/admin/requests", protect, admin, getPendingRecipes);
+
+/**
+ * @swagger
+ * /recipes/admin/requests/{id}/approve:
+ *   patch:
+ *     summary: Approve recipe request (admin only)
+ *     tags: [Recipes]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Recipe approved
+ *       403:
+ *         description: Admin role required
+ *       404:
+ *         description: Recipe not found
+ */
+router.patch(
+  "/admin/requests/:id/approve",
+  protect,
+  admin,
+  approveRecipeRequest,
+);
 
 /**
  * @swagger
@@ -236,6 +339,8 @@ router.patch("/:id/dislike", protect, dislikeRecipe);
  *   delete:
  *     summary: რეცეპტის წაშლა
  *     tags: [Recipes]
+ *     security:
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -243,6 +348,8 @@ router.patch("/:id/dislike", protect, dislikeRecipe);
  *     responses:
  *       200:
  *         description: წაიშალა
+ *       403:
+ *         description: მხოლოდ ავტორს ან ადმინს შეუძლია წაშლა
  *       404:
  *         description: ვერ მოიძებნა
  */
