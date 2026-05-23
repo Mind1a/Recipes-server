@@ -12,6 +12,9 @@ const connectDB = require("./config/db");
 const seedAdmin = require("./scripts/seedAdmin");
 const swaggerDocs = require("./config/swagger");
 
+// 🆕 შემოვიტანოთ კრონების ცენტრალური მენეჯერი
+const initCrons = require("./cron");
+
 const { setServers } = require("node:dns/promises");
 setServers(["1.1.1.1", "8.8.8.8"]);
 
@@ -62,6 +65,8 @@ const startServer = async () => {
   try {
     await connectDB();
     await seedAdmin();
+
+    initCrons(); // <-- 🆕 ვუშვებთ კრონ ტასკებს ბაზის ჩართვის შემდეგ
 
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
